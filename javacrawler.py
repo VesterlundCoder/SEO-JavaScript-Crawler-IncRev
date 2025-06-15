@@ -46,7 +46,9 @@ class DatabaseManager:
                 internal_links INTEGER,
                 external_links INTEGER,
                 image_count INTEGER,
-                images_missing_alt INTEGER
+                images_missing_alt INTEGER,
+                nav_elements_count INTEGER,
+                js_specific_image_count INTEGER
             )
         ''')
         await self.conn.commit()
@@ -74,16 +76,16 @@ class DatabaseManager:
         async with self.conn.execute('SELECT COUNT(*) FROM visited') as cursor:
             return (await cursor.fetchone())[0]
 
-    async def save_result(self, url, has_js, js_sources, internal_links, external_links, image_count, images_missing_alt):
+    async def save_result(self, url, has_js, js_sources, internal_links, external_links, image_count, images_missing_alt, nav_elements_count, js_specific_image_count):
         js_sources_str = ", ".join(js_sources)
         await self.conn.execute(
-            'INSERT INTO results (url, has_js, js_sources, internal_links, external_links, image_count, images_missing_alt) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            (url, has_js, js_sources_str, internal_links, external_links, image_count, images_missing_alt)
+            'INSERT INTO results (url, has_js, js_sources, internal_links, external_links, image_count, images_missing_alt, nav_elements_count, js_specific_image_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            (url, has_js, js_sources_str, internal_links, external_links, image_count, images_missing_alt, nav_elements_count, js_specific_image_count)
         )
         await self.conn.commit()
 
     async def get_all_results(self):
-        async with self.conn.execute('SELECT url, has_js, js_sources, internal_links, external_links, image_count, images_missing_alt FROM results') as cursor:
+        async with self.conn.execute('SELECT url, has_js, js_sources, internal_links, external_links, image_count, images_missing_alt, nav_elements_count, js_specific_image_count FROM results') as cursor:
             return await cursor.fetchall()
 
     async def is_queue_empty(self):
@@ -180,10 +182,20 @@ class AsyncCrawler:
                     if not alt or not alt.strip():
                         images_missing_alt += 1
 
+                # --- JS-rendered content extraction (User Request) ---
+                nav_elements = await page.query_selector_all('nav, [role="navigation"], .menu, .navbar')
+                nav_elements_count = len(nav_elements)
+
+                # Selectors for images specifically loaded/defined by JS (e.g. lazy-loaded, data URIs)
+                js_specific_images = await page.query_selector_all('img[data-src], img[src^="data:"], img[src^="blob:"]')
+                js_specific_image_count = len(js_specific_images)
+                # --- End JS-rendered content extraction ---
+
                 await self.db.save_result(
                     url, has_js, js_list,
                     internal_links_count, external_links_count,
-                    image_count, images_missing_alt
+                    image_count, images_missing_alt,
+                    nav_elements_count, js_specific_image_count
                 )
 
             except Error as e:
@@ -237,7 +249,8 @@ class AsyncCrawler:
         sheet.title = "Crawl Results"
         sheet.append([
             "URL", "Has JavaScript", "JavaScript Sources",
-            "Internal Links", "External Links", "Image Count", "Images Missing Alt Text"
+            "Internal Links", "External Links", "Total Image Count", "Images Missing Alt Text",
+            "Nav Elements Found", "JS-Specific Images"
         ])
 
         for row in results:
