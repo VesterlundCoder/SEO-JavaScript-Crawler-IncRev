@@ -117,7 +117,8 @@ class AsyncCrawler:
     """A scalable, persistent, asynchronous web crawler."""
     def __init__(self, start_url, max_pages, num_crawlers, db_name):
         self.start_url = start_url
-        self.domain = urlparse(start_url).netloc
+        self.domain = urlparse(start_url).netloc # Keep original for reference if needed
+        self.normalized_domain = self.domain.replace('www.', '')
         self.max_pages = max_pages
         self.num_crawlers = num_crawlers
         self.db = DatabaseManager(db_name)
@@ -159,20 +160,32 @@ class AsyncCrawler:
                 has_js, js_list = await self._extract_js_info(page)
 
                 # --- SEO Data Extraction & Link Discovery ---
+                print(f"    [DEBUG] Worker for {url}: Starting link extraction.")
                 links = await page.query_selector_all('a')
+                print(f"    [DEBUG] Worker for {url}: Found {len(links)} <a> tags.")
                 internal_links_count = 0
                 external_links_count = 0
-                for link in links:
-                    href = await link.get_attribute('href')
-                    if not href:
+                
+                for i, link_tag in enumerate(links):
+                    href = await link_tag.get_attribute('href')
+                    print(f"    [DEBUG] Worker for {url}: Link {i+1}/{len(links)} raw href: '{href}'")
+                    if not href or href.strip().startswith('#') or href.strip().lower().startswith('javascript:'):
+                        print(f"    [DEBUG] Worker for {url}: Link {i+1} skipped (empty, anchor, or JS link).")
                         continue
                     
                     abs_url = urljoin(url, href.strip())
-                    if urlparse(abs_url).netloc == self.domain:
+                    link_domain_normalized = urlparse(abs_url).netloc.replace('www.', '')
+                    print(f"    [DEBUG] Worker for {url}: Link {i+1} abs_url: '{abs_url}', normalized_link_domain: '{link_domain_normalized}', self.normalized_domain: '{self.normalized_domain}'")
+
+                    if link_domain_normalized == self.normalized_domain:
                         internal_links_count += 1
-                        await self.db.add_to_queue(abs_url) # Add to queue for further crawling
+                        await self.db.add_to_queue(abs_url)
+                        print(f"    [DEBUG] Worker for {url}: Link {i+1} classified INTERNAL, added to queue: {abs_url}")
                     else:
                         external_links_count += 1
+                        print(f"    [DEBUG] Worker for {url}: Link {i+1} classified EXTERNAL.")
+                
+                print(f"    [DEBUG] Worker for {url}: Finished link extraction. Internal links found on page: {internal_links_count}, External: {external_links_count}")
 
                 images = await page.query_selector_all('img')
                 image_count = len(images)
