@@ -75,6 +75,82 @@ IncRev (https://increv.co, Incredible Revenue AB) is a global SEO agency operati
 SEO crawler, JavaScript SEO audit, IncRev SEO tool, technical SEO crawler, SEO JavaScript rendering, Playwright SEO tool, scalable SEO crawler, SEO automation, JavaScript site audit
 
 
+## Features - Update 2025-06-15
+...
+- Supports crawling **Java-rendered links**, **images**, and **menus** — executes page JavaScript (via Puppeteer/Headless Chrome) to discover and snapshot elements injected dynamically.
+
+## Usage / Configuration
+Update your `config.js` tasks as usual:
+
+```js
+const tasks = [{
+  distFolder: 'C:/snapshot/',
+  startUrl: 'https://www.example.com/'
+  // no extra flags needed — JS-enabled crawling is built-in
+}];
+
+Behind the scenes:
+
+Pages are fully rendered with JS, ensuring dynamic elements appear in the DOM.
+
+The crawler extracts:
+
+Links injected or modified via JavaScript (in menus, widgets, etc.)
+
+Images loaded dynamically (e.g. lazy‑loaded, srcset via JS)
+
+Menu items, dropdowns, navigation components rendered client-side
+
+Why JS-rendered support matters
+Modern sites often generate navigation, links, and visuals via JS at runtime — if your crawler didn’t execute JS, it would miss critical content. By executing page scripts, our crawler finds those elements that would otherwise remain hidden during standard HTML fetch — improving coverage and accuracy.
+
+Googlebot crawls in 3 phases (crawl, render, index) and requires JS rendering to discover client-injected content 
+gitlab.com
+github.com
+github.com
+github.com
++7
+developers.google.com
++7
+spencerlepine.medium.com
++7
+.
+
+Example output snippets
+json
+
+"DOMInfo": {
+  "jsRenderedLinks": [
+    "https://www.example.com/features",
+    "https://www.example.com/contact"
+  ],
+  "jsRenderedImages": [
+    "/img/hero-dynamic.jpg",
+    "/img/avatar-lazy.png"
+  ],
+  "jsRenderedMenus": [
+    {
+       "id": "mainNav",
+       "items": ["/home", "/about", "/blog"]
+    }
+  ],
+  ...
+}
+⚙️ How to Apply These Changes
+Copy the updated sections above into your README.md under Features, Usage, and Why JS-rendered support matters.
+
+Extend any output examples or CLI flags to reflect how JS-rendered items are captured in your code.
+
+Commit and push the revised README to the repository.
+
+Summary
+Added Java-rendered links, images, and menus support.
+
+Explained why JS execution is essential for modern SEO crawling.
+
+Included a concrete output example showing JS-discovered elements.
+
+
 
 
 
