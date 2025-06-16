@@ -48,9 +48,29 @@ class DatabaseManager:
                 image_count INTEGER,
                 images_missing_alt INTEGER,
                 nav_elements_count INTEGER,
-                js_specific_image_count INTEGER
+                js_specific_image_count INTEGER,
+                lazy_broken_images INTEGER,
+                needs_ssr BOOLEAN,
+                dom_content_loaded_ms REAL,
+                js_render_score REAL,
+                dom_mutation_count INTEGER,
+                js_console_errors TEXT
             )
         ''')
+        # Try to add new columns if missing (safe for SQLite)
+        columns = [
+            ("lazy_broken_images", "INTEGER"),
+            ("needs_ssr", "BOOLEAN"),
+            ("dom_content_loaded_ms", "REAL"),
+            ("js_render_score", "REAL"),
+            ("dom_mutation_count", "INTEGER"),
+            ("js_console_errors", "TEXT")
+        ]
+        for col, typ in columns:
+            try:
+                await self.conn.execute(f'ALTER TABLE results ADD COLUMN {col} {typ}')
+            except Exception:
+                pass
         await self.conn.commit()
 
     async def add_to_queue(self, url):
@@ -76,16 +96,16 @@ class DatabaseManager:
         async with self.conn.execute('SELECT COUNT(*) FROM visited') as cursor:
             return (await cursor.fetchone())[0]
 
-    async def save_result(self, url, has_js, js_sources, internal_links, external_links, image_count, images_missing_alt, nav_elements_count, js_specific_image_count):
+    async def save_result(self, url, has_js, js_sources, internal_links, external_links, image_count, images_missing_alt, nav_elements_count, js_specific_image_count, lazy_broken_images, needs_ssr, dom_content_loaded_ms, js_render_score, dom_mutation_count, js_console_errors):
         js_sources_str = ", ".join(js_sources)
         await self.conn.execute(
-            'INSERT INTO results (url, has_js, js_sources, internal_links, external_links, image_count, images_missing_alt, nav_elements_count, js_specific_image_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            (url, has_js, js_sources_str, internal_links, external_links, image_count, images_missing_alt, nav_elements_count, js_specific_image_count)
+            'INSERT INTO results (url, has_js, js_sources, internal_links, external_links, image_count, images_missing_alt, nav_elements_count, js_specific_image_count, lazy_broken_images, needs_ssr, dom_content_loaded_ms, js_render_score, dom_mutation_count, js_console_errors) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            (url, has_js, js_sources_str, internal_links, external_links, image_count, images_missing_alt, nav_elements_count, js_specific_image_count, lazy_broken_images, needs_ssr, dom_content_loaded_ms, js_render_score, dom_mutation_count, js_console_errors)
         )
         await self.conn.commit()
 
     async def get_all_results(self):
-        async with self.conn.execute('SELECT url, has_js, js_sources, internal_links, external_links, image_count, images_missing_alt, nav_elements_count, js_specific_image_count FROM results') as cursor:
+        async with self.conn.execute('SELECT url, has_js, js_sources, internal_links, external_links, image_count, images_missing_alt, nav_elements_count, js_specific_image_count, lazy_broken_images, needs_ssr, dom_content_loaded_ms, js_render_score, dom_mutation_count, js_console_errors FROM results') as cursor:
             return await cursor.fetchall()
 
     async def is_queue_empty(self):
@@ -136,6 +156,8 @@ class AsyncCrawler:
     async def _worker(self, playwright_context):
         page = await playwright_context.new_page()
         await stealth_async(page)
+        js_console_errors = []
+        page.on("console", lambda msg: js_console_errors.append(f"{msg.type}: {msg.text}"))
         while not self._crawl_finished.is_set() and await self.db.get_visited_count() < self.max_pages:
             url = await self.db.get_from_queue()
             if not url:
@@ -190,10 +212,16 @@ class AsyncCrawler:
                 images = await page.query_selector_all('img')
                 image_count = len(images)
                 images_missing_alt = 0
+                broken_lazy_images = 0
                 for img in images:
                     alt = await img.get_attribute('alt')
+                    src = await img.get_attribute('src')
+                    data_src = await img.get_attribute('data-src')
                     if not alt or not alt.strip():
                         images_missing_alt += 1
+                    if not src and data_src:
+                        print(f"⚠️ Lazy-loaded image without src found on {url}")
+                        broken_lazy_images += 1
 
                 # --- JS-rendered content extraction (User Request) ---
                 nav_elements = await page.query_selector_all('nav, [role="navigation"], .menu, .navbar')
@@ -204,11 +232,40 @@ class AsyncCrawler:
                 js_specific_image_count = len(js_specific_images)
                 # --- End JS-rendered content extraction ---
 
+                # SSR check
+                main_content = await page.query_selector('.main-content, h1')
+                needs_ssr = not bool(main_content)
+                if needs_ssr:
+                    print(f"⚠️ Critical content missing without JS rendering on {url}")
+
+                # DOM mutation monitoring
+                await page.evaluate('''
+                    window._mutations = 0;
+                    new MutationObserver(() => { window._mutations = (window._mutations || 0) + 1; }).observe(document.body, {childList: true, subtree: true});
+                ''')
+                await asyncio.sleep(1)  # Give time for mutations
+                dom_mutation_count = await page.evaluate('window._mutations')
+
+                # Performance timing
+                try:
+                    dom_content_loaded_ms = await page.evaluate("performance.getEntriesByType('navigation')[0].domContentLoadedEventEnd")
+                except Exception:
+                    dom_content_loaded_ms = None
+
+                # JS Render Score (heuristic: percent of links/images with data-js-added)
+                js_links = await page.query_selector_all('a[data-js-added]')
+                js_images = await page.query_selector_all('img[data-js-added]')
+                js_render_score = 0.0
+                total = len(links) + len(images)
+                if total > 0:
+                    js_render_score = (len(js_links) + len(js_images)) / total * 100
+
                 await self.db.save_result(
                     url, has_js, js_list,
                     internal_links_count, external_links_count,
                     image_count, images_missing_alt,
-                    nav_elements_count, js_specific_image_count
+                    nav_elements_count, js_specific_image_count,
+                    broken_lazy_images, needs_ssr, dom_content_loaded_ms, js_render_score, dom_mutation_count, ", ".join(js_console_errors)
                 )
 
             except Error as e:
@@ -263,7 +320,8 @@ class AsyncCrawler:
         sheet.append([
             "URL", "Has JavaScript", "JavaScript Sources",
             "Internal Links", "External Links", "Total Image Count", "Images Missing Alt Text",
-            "Nav Elements Found", "JS-Specific Images"
+            "Nav Elements Found", "JS-Specific Images", "Lazy Broken Images", "Needs SSR",
+            "DOM Content Loaded (ms)", "JS Render Score", "DOM Mutation Count", "JS Console Errors"
         ])
 
         for row in results:
