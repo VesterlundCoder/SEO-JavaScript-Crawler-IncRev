@@ -1,123 +1,80 @@
-<H1>SEO JavaScriptCrawler by IncRev</H1>
-SEO JavaScriptCrawler by https://IncRev.co is a powerful, asynchronous, and scalable web crawler built with Playwright that detects and analyzes JavaScript content on web pages – a critical feature that most traditional SEO audit tools lack.
+<h1>🕷️ SEO JavaScriptCrawler by IncRev</h1>
 
-<H2>🔍 JavaScript Crawler - Why does this matter for SEO?</H2>
-Modern websites increasingly rely on JavaScript frameworks like React, Vue, and Angular. This means essential SEO elements such as internal links, metadata, and page content are dynamically rendered. Tools that don’t render JavaScript often miss major parts of a site’s actual structure, leading to incomplete audits and suboptimal SEO decisions.
+SEO JavaScriptCrawler by https://IncRev.co is a powerful, asynchronous, and scalable web crawler built with Playwright that fully renders and analyzes JavaScript-powered content on modern websites — a feature most traditional SEO tools lack.
+
+<h2>🔍 Why JavaScript Crawling Matters for SEO</h2>
+
+Today’s websites rely heavily on JavaScript frameworks like React, Vue, and Angular to generate critical content such as navigation links, product listings, and metadata. If your crawler doesn’t render JavaScript, you’re missing the real DOM — and making SEO decisions based on incomplete data.
+
+<h3>Googlebot renders JavaScript before indexing. Your crawler should too.</h3>
 
 **🚀 Features**
 
-✅ JavaScript rendering via Playwright with stealth mode enabled
+✅ Full JavaScript rendering with Playwright and stealth mode (avoids bot detection)
+✅ Detects whether a page includes JS and lists all <script> sources (inline & external)
+✅ Analyzes internal and external links (including dynamically inserted links)
+✅ Image auditing: counts images and flags missing alt tags
+✅ Detects lazy-loaded images without src (broken or unhydrated images)
+✅ Flags pages that require SSR or preload to display critical content
+✅ Extracts JS-rendered menus and dynamic navigation
+✅ Monitors DOM for client-side injections (menus, dropdowns, content)
+✅ Parses and respects robots.txt for ethical crawling
+✅ Asynchronous architecture with multiple parallel workers for speed
+✅ Persistent SQLite database with resumable crawling
+✅ Exports to Excel (.xlsx) for advanced SEO reporting and visualization
 
-✅ Detects whether a page includes JavaScript and lists all script sources (inline + external)
+<h2>🧠 What Makes IncRev’s JavaScript Crawler Unique?</h2>
 
-✅ Full internal/external link analysis
+IncRev’s SEO JavaScriptCrawler gives you deep visibility into what search engines really see when crawling your site — not just raw HTML, but fully rendered content.
 
-✅ Image analysis with missing alt tag detection (a common SEO issue)
+**With this tool, you can:**
 
-✅ Automatic robots.txt parsing and respectful crawling
+Detect JS-dependent content and identify where preload or SSR is needed
+Find broken lazy-loaded images that never get hydrated
+Audit the difference between static and dynamic SEO structure
+Flag missing image alt attributes, non-crawlable menus, and injected links
+Analyze large-scale websites with resume capability and persistence
+⚙️ Installation
 
-✅ Asynchronous crawling with multiple workers for speed
-
-✅ Persistent SQLite database with Excel export for in-depth SEO reporting
-
-✅ Resumable crawling — designed for large-scale audits and robustness
-
-<H2>🎯 What makes IncRev’s SEO JavaScript crawler unique?</H2>
-🧠 With IncRev’s SEO JavaScriptCrawler, you get deep technical visibility into how Google and other search engines perceive your JavaScript-powered site.
-
-**💡 This is not just another crawl tool – it’s a purpose-built SEO crawler that reveals:**
-
-Pages that rely on JavaScript for full functionality
-
-Technical SEO issues such as missing alt attributes, empty links, or hidden content
-
-The contrast between static vs. dynamic SEO content
-
-**🛠️ Installation**
-bash
 pip install -r requirements.txt
-Install Playwright and its supported browsers:
-
-bash
 playwright install
 
-**⚙️ How to Use**
-bash
+**▶️ How to Use**
+
 python crawler.py
-Enter your start URL (e.g., https://example.com)
+You’ll be prompted to enter:
 
-Enter max number of pages to crawl
+A start URL (e.g. https://example.com)
+The maximum number of pages to crawl
+After the crawl, your results are exported to:
 
-Results are saved as an Excel file: example.com_crawl_results.xlsx
+example.com_crawl_results.xlsx
 
-**📊 Output (Excel)**
-URL	Has JavaScript	JavaScript Sources	Internal Links	External Links	Image Count	Images Missing Alt
-https://example.com	✅	/main.js, /analytics.js	14	3	12	5
+**📊 Excel Output Includes**
 
-Perfect for further SEO analysis in Excel, Google Sheets, or visualization tools.
+URL	Has JavaScript	JavaScript Sources	Internal Links	External Links	Image Count	Images Missing Alt	Lazy Broken Images	Nav Elements	JS-Specific Images	Needs SSR
+Perfect for auditing with Excel, Google Sheets, Power BI, or Data Studio.
 
-**🔐 Ethical Use**
-SEO JavaScriptCrawler by IncRev strictly respects robots.txt and is built for ethical SEO crawling. You are responsible for complying with website terms and legal guidelines when using this tool.
+<h2>🧪 New Features in IncRev SEO JavaScript Crawler (Update 2025-06-15)</h2>
 
-**🧭 Coming Soon**
-Structured data / schema.org extraction
+**✅ JavaScript-rendered Elements**
+Crawls and discovers JS-rendered links, menus, and images
+Executes client-side JavaScript to fully build the DOM
+Captures dynamically injected elements such as:
+Lazy-loaded images
+SPA navigation components
+JavaScript-created links in widgets or menus
 
-Core Web Vitals auditing (via Lighthouse integration)
+**⚠️ Lazy Load Image Warnings**
+Flags images using data-src or data-lazy without valid src
+Identifies images that fail to load due to broken lazy-load logic
+Logged as "Lazy Broken Images" in the report
 
-DOM-diff between raw and rendered HTML
+**🔎 SSR / Preload Recommendation**
+Flags pages where critical content (e.g. H1, .main-content) is missing unless JavaScript is rendered
+Marks such pages with "Needs SSR" in the report
 
-Integration with Ahrefs and Google Search Console
-
-<H2>💬 About IncRev </H2>
-IncRev (https://increv.co, Incredible Revenue AB) is a global SEO agency operating in over 40 countries, specializing in link building, AI-powered SEO tools, and technical SEO optimization. We help SEO managers and marketing teams uncover hidden opportunities – often buried deep inside JavaScript-heavy websites.
-
-**🔑 SEO Keywords**
-SEO crawler, JavaScript SEO audit, IncRev SEO tool, technical SEO crawler, SEO JavaScript rendering, Playwright SEO tool, scalable SEO crawler, SEO automation, JavaScript site audit
-
-
-## Features - Update 2025-06-15
-...
-- Supports crawling **Java-rendered links**, **images**, and **menus** — executes page JavaScript (via Puppeteer/Headless Chrome) to discover and snapshot elements injected dynamically.
-
-## Usage / Configuration
-Update your `config.js` tasks as usual:
-
-```js
-const tasks = [{
-  distFolder: 'C:/snapshot/',
-  startUrl: 'https://www.example.com/'
-  // no extra flags needed — JS-enabled crawling is built-in
-}];
-
-Behind the scenes:
-
-Pages are fully rendered with JS, ensuring dynamic elements appear in the DOM.
-
-The crawler extracts:
-
-Links injected or modified via JavaScript (in menus, widgets, etc.)
-
-Images loaded dynamically (e.g. lazy‑loaded, srcset via JS)
-
-Menu items, dropdowns, navigation components rendered client-side
-
-Why JS-rendered support matters
-Modern sites often generate navigation, links, and visuals via JS at runtime — if your crawler didn’t execute JS, it would miss critical content. By executing page scripts, our crawler finds those elements that would otherwise remain hidden during standard HTML fetch — improving coverage and accuracy.
-
-Googlebot crawls in 3 phases (crawl, render, index) and requires JS rendering to discover client-injected content 
-gitlab.com
-github.com
-github.com
-github.com
-+7
-developers.google.com
-+7
-spencerlepine.medium.com
-+7
-.
-
-Example output snippets
-json
+**🧪 Sample JSON Output (from internal structure)**
 
 "DOMInfo": {
   "jsRenderedLinks": [
@@ -133,34 +90,31 @@ json
        "id": "mainNav",
        "items": ["/home", "/about", "/blog"]
     }
-  ],
-  ...
+  ]
 }
-⚙️ How to Apply These Changes
-Copy the updated sections above into your README.md under Features, Usage, and Why JS-rendered support matters.
+<h2>🔐 Ethical Use of the JavaScript Crawler</h2>
 
-Extend any output examples or CLI flags to reflect how JS-rendered items are captured in your code.
+SEO JavaScriptCrawler by IncRev strictly follows robots.txt directives and is designed for ethical SEO auditing. You are responsible for ensuring your usage complies with legal and website terms.
 
-Commit and push the revised README to the repository.
+**🧭 Coming Soon**
 
-Summary
-Added Java-rendered links, images, and menus support.
+Structured data (schema.org) extraction
+Core Web Vitals auditing (via Lighthouse)
+DOM diff between raw HTML and rendered DOM
+Google Search Console & Ahrefs integration
 
-Explained why JS execution is essential for modern SEO crawling.
+<h3>💬 About IncRev</h3>
 
-Included a concrete output example showing JS-discovered elements.
+IncRev (Incredible Revenue AB) is a global SEO agency operating in 40+ countries, specializing in:
 
+International link building
+AI-powered SEO automation
+JavaScript SEO diagnostics
+Technical SEO audits at scale
+We help SEO and marketing teams uncover hidden revenue opportunities — often buried deep inside JavaScript-driven websites.
 
+<h3>🔑 SEO Keywords</h3>
 
-
-
-
-
-
-
-
-
-
-
-
-
+SEO crawler, JavaScript SEO audit, IncRev SEO tool, technical SEO crawler,
+SEO JavaScript rendering, Playwright SEO tool, scalable SEO crawler,
+lazy load SEO audit, SSR SEO, JavaScript crawler, IncRev, SEO automation
