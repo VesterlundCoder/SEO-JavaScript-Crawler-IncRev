@@ -1,0 +1,7 @@
+asyncio
+openpyxl
+aiosqlite
+playwright
+robotexclusionrulesparser
+aiohttp
+playwright-stealth
